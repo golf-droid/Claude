@@ -189,8 +189,9 @@ begin
     execute format('drop policy %I on %I.%I', p.policyname, p.schemaname, p.tablename);
   end loop;
 
-  -- ตารางลูกทั้งหมดใช้กติกาเดียวกัน: เป็นสมาชิกบ้านนั้น = อ่าน/เขียนได้
-  foreach t in array array['accounts', 'categories', 'transactions', 'budgets']
+  -- กระเป๋าเงิน หมวดหมู่ และงบประมาณ เป็นของใช้ร่วมกันทั้งบ้าน ใครก็จัดการได้
+  -- ส่วน transactions มีกติกาเข้มกว่า จึงแยกไปเขียนเองข้างล่าง
+  foreach t in array array['accounts', 'categories', 'budgets']
   loop
     execute format($f$
       create policy %1$s_member_all on public.%1$I
@@ -201,6 +202,46 @@ begin
   end loop;
 end
 $$;
+
+-- ---------------------------------------------------------------------------
+-- กติกาของรายการรับ-จ่าย
+--
+-- อ่าน:  สมาชิกทุกคนเห็นรายการของทั้งบ้าน (ไม่งั้นภาพรวมและรายงานจะไม่ครบ)
+-- เขียน: บันทึก/แก้/ลบได้เฉพาะรายการ "ของตัวเอง" (paid_by = ตัวเอง)
+--        และรายการ "ส่วนกลาง" (paid_by เป็นค่าว่าง) เท่านั้น
+--        เจ้าบ้านแก้ได้ทุกรายการ เอาไว้ตามเก็บกวาดของที่บันทึกผิด
+--
+-- บังคับที่ฐานข้อมูล ไม่ใช่แค่ซ่อนปุ่มในหน้าเว็บ ต่อให้ยิง API ตรงก็ผ่านไม่ได้
+-- ---------------------------------------------------------------------------
+
+create policy transactions_select on public.transactions
+  for select to authenticated
+  using (public.is_household_member(household_id));
+
+create policy transactions_insert on public.transactions
+  for insert to authenticated
+  with check (
+    public.is_household_member(household_id)
+    and (paid_by is null or paid_by = auth.uid() or public.is_household_owner(household_id))
+  );
+
+create policy transactions_update on public.transactions
+  for update to authenticated
+  using (
+    public.is_household_member(household_id)
+    and (paid_by is null or paid_by = auth.uid() or public.is_household_owner(household_id))
+  )
+  with check (
+    public.is_household_member(household_id)
+    and (paid_by is null or paid_by = auth.uid() or public.is_household_owner(household_id))
+  );
+
+create policy transactions_delete on public.transactions
+  for delete to authenticated
+  using (
+    public.is_household_member(household_id)
+    and (paid_by is null or paid_by = auth.uid() or public.is_household_owner(household_id))
+  );
 
 create policy households_member_select on public.households
   for select to authenticated using (public.is_household_member(id));

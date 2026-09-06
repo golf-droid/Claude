@@ -20,6 +20,14 @@ export default function TransactionSheet({ onClose, editing }) {
   } = useData()
 
   const activeAccounts = accounts.filter((a) => a.is_active !== false)
+
+  // แต่ละคนแก้ได้เฉพาะรายการของตัวเองกับส่วนกลาง เจ้าบ้านแก้ได้ทุกอัน
+  // (กติกาจริงบังคับที่ฐานข้อมูล ตรงนี้แค่ทำให้หน้าจอไม่ชวนกดสิ่งที่จะโดนปฏิเสธ)
+  const isOwner = members.find((m) => m.user_id === userId)?.role === 'owner'
+  const owner = editing?.paid_by ? members.find((m) => m.user_id === editing.paid_by) : null
+  const readOnly = Boolean(editing) && !isOwner &&
+    editing.paid_by != null && editing.paid_by !== userId
+  const assignable = isOwner ? members : members.filter((m) => m.user_id === userId)
   const [type, setType] = useState(editing?.type ?? 'expense')
   const [amount, setAmount] = useState(editing ? String(editing.amount) : '')
   const [date, setDate] = useState(editing?.txn_date ?? todayKey())
@@ -95,19 +103,31 @@ export default function TransactionSheet({ onClose, editing }) {
 
   return (
     <Modal
-      title={editing ? 'แก้ไขรายการ' : 'บันทึกรายการ'}
+      title={readOnly ? 'รายการของคนอื่น' : editing ? 'แก้ไขรายการ' : 'บันทึกรายการ'}
       onClose={onClose}
       footer={
-        <div className="row gap">
-          {editing && (
-            <button className="btn danger-ghost" onClick={remove}>ลบ</button>
-          )}
-          <button className="btn primary grow" onClick={submit}>
-            {editing ? 'บันทึกการแก้ไข' : 'บันทึก'}
-          </button>
-        </div>
+        readOnly ? (
+          <button className="btn block" onClick={onClose}>ปิด</button>
+        ) : (
+          <div className="row gap">
+            {editing && (
+              <button className="btn danger-ghost" onClick={remove}>ลบ</button>
+            )}
+            <button className="btn primary grow" onClick={submit}>
+              {editing ? 'บันทึกการแก้ไข' : 'บันทึก'}
+            </button>
+          </div>
+        )
       }
     >
+      {readOnly && (
+        <p className="locked-note">
+          รายการนี้เป็นของ <b>{owner?.display_name ?? 'สมาชิกคนอื่น'}</b> ดูได้อย่างเดียว
+          แก้ไขหรือลบได้เฉพาะเจ้าของรายการ
+        </p>
+      )}
+
+      <fieldset className="bare" disabled={readOnly}>
       <div className="seg">
         {TYPES.map((t) => (
           <button
@@ -223,10 +243,15 @@ export default function TransactionSheet({ onClose, editing }) {
           <label className="field">
             <span className="field-label">ของใคร</span>
             <select value={paidBy ?? ''} onChange={(e) => setPaidBy(e.target.value || null)}>
-              <option value="">ส่วนกลาง</option>
-              {members.map((m) => (
-                <option key={m.user_id} value={m.user_id}>{m.display_name}</option>
+              <option value="">ส่วนกลาง (ของบ้าน)</option>
+              {assignable.map((m) => (
+                <option key={m.user_id} value={m.user_id}>
+                  {m.display_name}{m.user_id === userId ? ' (คุณ)' : ''}
+                </option>
               ))}
+              {readOnly && owner && (
+                <option value={owner.user_id}>{owner.display_name}</option>
+              )}
             </select>
           </label>
         )}
@@ -249,6 +274,7 @@ export default function TransactionSheet({ onClose, editing }) {
       </div>
 
       {err && <p className="error">{err}</p>}
+      </fieldset>
     </Modal>
   )
 }

@@ -480,3 +480,19 @@ input:focus, select:focus, textarea:focus {
 .key:active { background: var(--track); transform: translateY(1px); }
 .key.blank { visibility: hidden; }
 .pin-hint { text-align: center; line-height: 1.7; }
+
+/* ดูรายการของคนอื่น: อ่านได้อย่างเดียว */
+.locked-note {
+  margin: 0;
+  padding: .6rem .7rem;
+  border-radius: 10px;
+  font-size: .84rem;
+  background: var(--surface-2);
+  border: 1px dashed var(--line);
+  color: var(--muted);
+}
+fieldset.bare {
+  border: none; margin: 0; padding: 0; min-width: 0;
+  display: flex; flex-direction: column; gap: .8rem;
+}
+fieldset.bare:disabled { opacity: .72; }
