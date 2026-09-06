@@ -47,7 +47,8 @@ create table if not exists public.accounts (
   id              uuid primary key default gen_random_uuid(),
   household_id    uuid not null references public.households on delete cascade,
   name            text not null,
-  kind            text not null default 'cash' check (kind in ('cash', 'bank', 'ewallet', 'credit')),
+  kind            text not null default 'cash'
+                    check (kind in ('cash', 'bank', 'ewallet', 'credit', 'savings', 'invest')),
   opening_balance numeric(14, 2) not null default 0,
   icon            text not null default '👛',
   sort_order      int  not null default 0,
@@ -261,9 +262,11 @@ begin
   values (v_id, v_uid, coalesce(nullif(trim(p_display_name), ''), 'สมาชิก'), 'owner', '#2563eb');
 
   insert into public.accounts (household_id, name, kind, icon, sort_order) values
-    (v_id, 'เงินสด',      'cash',    '💵', 1),
-    (v_id, 'บัญชีธนาคาร', 'bank',    '🏦', 2),
-    (v_id, 'พร้อมเพย์/วอลเล็ท', 'ewallet', '📱', 3);
+    (v_id, 'เงินสด',              'cash',    '💵', 1),
+    (v_id, 'บัญชีธนาคาร',         'bank',    '🏦', 2),
+    (v_id, 'พร้อมเพย์/วอลเล็ท',   'ewallet', '📱', 3),
+    (v_id, 'เงินเก็บสำรอง',       'savings', '🏛️', 10),
+    (v_id, 'ลงทุนหุ้น/กองทุน',    'invest',  '📈', 11);
 
   insert into public.categories (household_id, name, kind, icon, color, sort_order) values
     (v_id, 'เงินเดือน',      'income',  '💼', '#16a34a', 1),

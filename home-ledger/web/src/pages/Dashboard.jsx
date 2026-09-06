@@ -7,10 +7,16 @@ import TransactionList from '../components/TransactionList.jsx'
 import { BarRow, Donut } from '../components/Charts.jsx'
 import Money from '../components/Money.jsx'
 import { accountColor } from '../lib/banks.js'
+import { splitByGroup } from '../lib/accounts.js'
 
 export default function Dashboard() {
   const { transactions, balances, totalBalance, categoryById, budgets, monthSummary } = useData()
   const [month, setMonth] = useState(currentMonthKey())
+
+  const wallets = useMemo(
+    () => splitByGroup(balances.filter((a) => a.is_active !== false)),
+    [balances]
+  )
 
   const summary = monthSummary(month)
 
@@ -63,6 +69,11 @@ export default function Dashboard() {
       <section className="card hero">
         <span className="hero-label">ยอดเงินคงเหลือรวม</span>
         <strong className="hero-value">{fmtMoney(totalBalance)} ฿</strong>
+        {wallets.reserve.length > 0 && (
+          <p className="hero-note">
+            ใช้ได้ {fmtMoneyShort(wallets.spendTotal)} ฿ · เก็บและลงทุนไว้แล้ว {fmtMoneyShort(wallets.reserveTotal)} ฿
+          </p>
+        )}
         <div className="hero-split">
           <div>
             <span className="muted small">รายรับเดือนนี้</span>
@@ -82,7 +93,7 @@ export default function Dashboard() {
       <section className="card">
         <h2 className="card-title">กระเป๋าเงิน</h2>
         <ul className="account-list">
-          {balances.filter((a) => a.is_active !== false).map((a) => (
+          {wallets.spend.map((a) => (
             <li key={a.id}>
               <span
                 className="acc-icon"
@@ -93,6 +104,30 @@ export default function Dashboard() {
             </li>
           ))}
         </ul>
+
+        {wallets.reserve.length > 0 && (
+          <>
+            <div className="group-head">
+              <span>เงินเก็บและลงทุน</span>
+              <Money value={wallets.reserveTotal} />
+            </div>
+            <ul className="account-list">
+              {wallets.reserve.map((a) => (
+                <li key={a.id}>
+                  <span
+                    className="acc-icon"
+                    style={accountColor(a) ? { background: accountColor(a) + '22', boxShadow: `inset 0 0 0 1.5px ${accountColor(a)}55` } : undefined}
+                  >{a.icon}</span>
+                  <span className="acc-name">{a.name}</span>
+                  <Money value={a.balance} />
+                </li>
+              ))}
+            </ul>
+            <p className="muted small" style={{ marginTop: '.5rem' }}>
+              ย้ายเงินเข้าที่นี่ด้วยเมนู <b>โอนเงิน</b> เงินจะไม่ถูกนับเป็นรายจ่าย
+            </p>
+          </>
+        )}
       </section>
 
       <section className="card">

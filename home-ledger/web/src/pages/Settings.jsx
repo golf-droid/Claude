@@ -4,17 +4,10 @@ import { useData } from '../lib/store.jsx'
 import { currentMonthKey, fmtMoney, monthLabel, parseAmount } from '../lib/format.js'
 import Modal from '../components/Modal.jsx'
 import { accountColor, banksFor, bankOf } from '../lib/banks.js'
+import { ACCOUNT_KINDS, kindOf } from '../lib/accounts.js'
 
-const ACCOUNT_KINDS = [
-  { key: 'cash', label: 'เงินสด' },
-  { key: 'bank', label: 'บัญชีธนาคาร' },
-  { key: 'ewallet', label: 'วอลเล็ท/พร้อมเพย์' },
-  { key: 'credit', label: 'บัตรเครดิต' }
-]
 const PALETTE = ['#ef4444', '#f97316', '#eab308', '#16a34a', '#0891b2',
   '#2563eb', '#8b5cf6', '#ec4899', '#64748b']
-
-const KIND_ICON = { cash: '💵', bank: '🏦', ewallet: '📱', credit: '💳' }
 
 function AccountDialog({ account, onClose }) {
   const { saveAccount } = useData()
@@ -30,7 +23,8 @@ function AccountDialog({ account, onClose }) {
   const pickKind = (next) => {
     setKind(next)
     if (banksFor(next).every((b) => b.code !== bank)) setBank('')
-    if (!account && (!icon || Object.values(KIND_ICON).includes(icon))) setIcon(KIND_ICON[next])
+    const generic = ACCOUNT_KINDS.map((k) => k.icon)
+    if (!account && (!icon || generic.includes(icon))) setIcon(kindOf(next).icon)
   }
 
   /** เลือกธนาคารแล้วเติมชื่อให้เลย ถ้าผู้ใช้ยังไม่ได้ตั้งชื่อเองไว้ */
@@ -74,14 +68,14 @@ function AccountDialog({ account, onClose }) {
       <label className="field">
         <span className="field-label">ประเภท</span>
         <select value={kind} onChange={(e) => pickKind(e.target.value)}>
-          {ACCOUNT_KINDS.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
+          {ACCOUNT_KINDS.map((k) => <option key={k.key} value={k.key}>{k.icon} {k.label}</option>)}
         </select>
       </label>
 
       {bankChoices.length > 0 && (
         <label className="field">
           <span className="field-label">
-            {kind === 'ewallet' ? 'วอลเล็ท / พร้อมเพย์' : 'ธนาคาร'}
+            {kind === 'ewallet' ? 'วอลเล็ท / พร้อมเพย์' : 'ธนาคาร / บลจ.'}
           </span>
           <select
             value={bank}
@@ -322,6 +316,7 @@ export default function Settings() {
                 >{a.icon}</span>
                 <span className="grow">
                   {a.name}
+                  <span className="tag">{kindOf(a.kind).label}</span>
                   {bankOf(a.bank) && !a.name.includes(bankOf(a.bank).name) && (
                     <span className="tag">{bankOf(a.bank).name}</span>
                   )}

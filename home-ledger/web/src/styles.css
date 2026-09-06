@@ -297,7 +297,7 @@ input:focus, select:focus, textarea:focus {
   display: grid; place-items: center; font-size: 1.1rem;
 }
 .txn-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.txn-title { font-weight: 600; }
+.txn-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .txn-sub {
   font-size: .78rem; color: var(--muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -441,3 +441,15 @@ input:focus, select:focus, textarea:focus {
 }
 .sync-error p { margin: .2rem 0 0; color: var(--muted); }
 .sync-error strong { color: var(--neg); }
+
+/* หัวข้อกลุ่มย่อยในรายการกระเป๋าเงิน (เงินเก็บและลงทุน) */
+.group-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-top: .8rem; padding-top: .6rem; border-top: 1px solid var(--line);
+  font-size: .8rem; color: var(--muted); font-weight: 600;
+}
+.hero-note {
+  margin: 0 0 .7rem; font-size: .8rem;
+  color: rgba(255, 255, 255, .85);
+  font-variant-numeric: tabular-nums;
+}

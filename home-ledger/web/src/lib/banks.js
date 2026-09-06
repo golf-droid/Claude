@@ -40,9 +40,11 @@ export const bankOf = (code) => (code ? BY_CODE[code] ?? null : null)
 
 /** ธนาคารที่เลือกได้สำหรับกระเป๋าประเภทนี้ — เงินสด/บัตรเครดิตเลือกได้ทุกเจ้า */
 export function banksFor(kind) {
-  if (kind === 'bank') return BANKS.filter((b) => b.kind === 'bank')
   if (kind === 'ewallet') return BANKS.filter((b) => b.kind === 'ewallet')
-  if (kind === 'credit') return BANKS.filter((b) => b.kind === 'bank')
+  // บัญชีธนาคาร บัตรเครดิต เงินเก็บ และกองทุนที่ซื้อผ่านธนาคาร ใช้รายชื่อเดียวกัน
+  if (['bank', 'credit', 'savings', 'invest'].includes(kind)) {
+    return BANKS.filter((b) => b.kind === 'bank')
+  }
   return []
 }
 
