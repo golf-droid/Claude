@@ -35,9 +35,18 @@
 - ถ้าอยากกันคนนอกสมัครเข้ามาให้แน่นหนา: หลังจากทุกคนในบ้านสมัครครบแล้ว
   ให้ปิด **Allow new users to sign up** ที่ **Authentication → Sign In / Providers**
 
-## ขั้นที่ 4 — ตั้งค่าและรันแอปในเครื่อง
+## ขั้นที่ 4 — เอาคีย์มาใส่ แล้วเปิดแอป
 
-1. ที่ Supabase ไปที่ **Project Settings → API** (หรือ **Data API**) จดสองค่านี้
+มีสองทาง เลือกทางเดียว
+
+### ทาง A — ผ่านเว็บล้วน ๆ ไม่ต้องลงอะไรในเครื่อง (แนะนำ)
+
+ข้ามไปทำขั้นที่ 6 ได้เลย แล้วค่อยกลับมาสมัครสมาชิกที่ขั้นที่ 5
+เพราะ Vercel จะ build ให้บนคลาวด์ โดยที่เครื่องคุณไม่ต้องมี Node.js
+
+### ทาง B — รันในเครื่องก่อน (ถ้าอยากลองแก้โค้ดเอง)
+
+1. ที่ Supabase ไปที่ **Project Settings → API** (หรือ **Data API**) จดสองค่านี้ — ใช้ทั้งสองทาง
    - **Project URL** เช่น `https://abcdefghijkl.supabase.co`
    - **anon public key** (ข้อความยาว ๆ ขึ้นต้นด้วย `eyJ...`)
 
@@ -80,28 +89,41 @@ npm run dev
 
 ## ขั้นที่ 6 — นำขึ้นออนไลน์ให้ใช้ได้ทุกที่
 
-เลือกที่ไหนก็ได้ ฟรีทั้งหมด ตัวอย่างนี้ใช้ Vercel
+### วิธีที่ง่ายที่สุด: Vercel เชื่อมกับ GitHub (ทำผ่านเว็บทั้งหมด)
 
-```bash
-npm install -g vercel
-cd home-ledger/web
-vercel            # ตอบคำถามตามค่าเริ่มต้น
-```
+1. เข้า https://vercel.com กด **Sign up** เลือก **Continue with GitHub**
+2. กด **Add New… → Project** เลือก repo นี้ แล้วกด **Import**
+3. ตั้งค่าตอน import ให้ตรงตามนี้
+   - **Root Directory:** กด Edit แล้วเลือก `home-ledger/web` ← **สำคัญที่สุด ถ้าไม่ตั้ง จะ build ไม่ผ่าน**
+   - **Framework Preset:** Vite (ปกติจะตรวจเจอเอง)
+   - Build Command / Output Directory ปล่อยตามค่าเริ่มต้น — ไฟล์ `vercel.json` ในโปรเจกต์ตั้งไว้ให้แล้ว
+4. เปิดหัวข้อ **Environment Variables** ใส่สองตัวนี้ (ค่าจากขั้นที่ 4)
 
-จากนั้นตั้งค่า environment variables ใน Vercel:
-**Project → Settings → Environment Variables** ใส่ `VITE_SUPABASE_URL` และ `VITE_SUPABASE_ANON_KEY`
-แล้วสั่ง deploy อีกครั้ง (`vercel --prod`)
+   | Name | Value |
+   |---|---|
+   | `VITE_SUPABASE_URL` | `https://xxxx.supabase.co` |
+   | `VITE_SUPABASE_ANON_KEY` | `eyJhbGciOi...` |
 
-**ทางเลือกอื่น**
+5. กด **Deploy** รอประมาณ 1–2 นาที จะได้ลิงก์แบบ `https://ชื่อโปรเจกต์.vercel.app`
+6. ถ้าโค้ดอยู่คนละ branch กับ default branch ของ repo: ไปที่
+   **Settings → Git → Production Branch** แล้วเปลี่ยนเป็น branch ที่ใช้จริง จากนั้นกด **Redeploy**
 
-| บริการ | คำสั่ง / วิธี | หมายเหตุ |
+หลังจากนี้ทุกครั้งที่โค้ดใน branch นั้นเปลี่ยน Vercel จะ build ใหม่ให้อัตโนมัติ
+
+> **ถ้า deploy แล้วหน้าขาว** เกือบทุกครั้งเกิดจาก Root Directory ไม่ได้ตั้งเป็น `home-ledger/web`
+> หรือลืมใส่ environment variables — แก้แล้วต้องกด **Redeploy** ทุกครั้ง เพราะค่าพวกนี้ถูกฝังตอน build
+
+### ทางเลือกอื่น
+
+| บริการ | วิธี | หมายเหตุ |
 |---|---|---|
-| Netlify | ลาก `web/dist` ไปวางที่ https://app.netlify.com/drop | หรือเชื่อม Git แล้วตั้ง build `npm run build`, publish `dist` |
-| Cloudflare Pages | เชื่อม Git → build `npm run build` → output `dist` | เร็วในไทย |
-| Firebase Hosting | `npm run build && firebase deploy` | |
+| Netlify | เชื่อม Git → ตั้ง base directory `home-ledger/web` | มี `netlify.toml` ตั้งค่าไว้ให้แล้ว |
+| Cloudflare Pages | เชื่อม Git → root `home-ledger/web`, build `npm run build`, output `dist` | เร็วในไทย |
+| ผ่านคอมมานด์ไลน์ | `cd home-ledger/web && npx vercel --prod` | ต้องมี Node.js ในเครื่อง |
 
-**สำคัญ:** แอปใช้ client-side routing ต้องตั้งให้ทุก path ตกไปที่ `index.html`
-Vercel/Netlify/Cloudflare Pages ตรวจจับ SPA ให้อัตโนมัติอยู่แล้ว ถ้าโฮสต์เองด้วย nginx ให้ใส่
+**เรื่อง client-side routing:** แอปใช้ URL แบบ `/transactions`, `/reports` ซึ่งต้องให้เซิร์ฟเวอร์ส่ง
+`index.html` กลับมาทุก path ไฟล์ `vercel.json`, `netlify.toml` และ `public/_redirects` ในโปรเจกต์
+ตั้งค่านี้ไว้ให้เรียบร้อยแล้ว ถ้าโฮสต์เองด้วย nginx ให้ใส่
 
 ```nginx
 location / {
