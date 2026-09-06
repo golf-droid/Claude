@@ -48,10 +48,13 @@
 
 1. ที่ Supabase ไปที่ **Project Settings → API** (หรือ **Data API**) จดสองค่านี้ — ใช้ทั้งสองทาง
    - **Project URL** เช่น `https://abcdefghijkl.supabase.co`
-   - **anon public key** (ข้อความยาว ๆ ขึ้นต้นด้วย `eyJ...`)
+     (ถ้าเห็นแต่ Project ID ให้ประกอบเองเป็น `https://<project-id>.supabase.co`)
+   - **คีย์สาธารณะ** ใส่ได้ทั้งสองแบบ แล้วแต่ว่าหน้าจอคุณแสดงแบบไหน
+     - **Publishable key** ขึ้นต้นด้วย `sb_publishable_...` ← แนะนำ เป็นรูปแบบใหม่ที่ Supabase กำลังเปลี่ยนมาใช้
+     - **anon public key** ข้อความยาวขึ้นต้นด้วย `eyJ...` ← แบบเดิม ยังใช้ได้ปกติ
 
-   > `anon key` เปิดเผยได้ ปลอดภัยเพราะมี RLS คุมอยู่
-   > แต่ **`service_role` key ห้ามนำมาใส่ในแอปเด็ดขาด** เพราะข้ามทุกกติกาความปลอดภัย
+   > คีย์สองแบบข้างบนออกแบบมาให้เปิดเผยได้ ปลอดภัยเพราะมี RLS คุมอยู่
+   > แต่ **`service_role` / `sb_secret_...` ห้ามนำมาใส่ในแอปเด็ดขาด** เพราะข้ามทุกกติกาความปลอดภัย
 
 2. ในเครื่อง:
 
@@ -109,6 +112,11 @@ npm run dev
    **Settings → Git → Production Branch** แล้วเปลี่ยนเป็น branch ที่ใช้จริง จากนั้นกด **Redeploy**
 
 หลังจากนี้ทุกครั้งที่โค้ดใน branch นั้นเปลี่ยน Vercel จะ build ใหม่ให้อัตโนมัติ
+
+> **ถ้าตอน Import แล้วเลือก Root Directory ไม่เจอ `home-ledger/web`**
+> แปลว่า **default branch ของ repo ยังไม่มีโฟลเดอร์นี้** เพราะ Vercel อ่านจาก default branch เสมอ
+> แก้โดยไปที่ GitHub → repo → **Settings → General → Default branch** แล้วสลับเป็น branch ที่มีโค้ดนี้
+> (หรือ merge branch นั้นเข้า default branch) จากนั้นค่อยกลับมา Import ใหม่
 
 > **ถ้า deploy แล้วหน้าขาว** เกือบทุกครั้งเกิดจาก Root Directory ไม่ได้ตั้งเป็น `home-ledger/web`
 > หรือลืมใส่ environment variables — แก้แล้วต้องกด **Redeploy** ทุกครั้ง เพราะค่าพวกนี้ถูกฝังตอน build
