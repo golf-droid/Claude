@@ -55,6 +55,9 @@ create table if not exists public.accounts (
   created_at      timestamptz not null default now()
 );
 
+-- ผูกกระเป๋าเงินกับธนาคาร/วอลเล็ท (เพิ่มภายหลัง จึงใช้ alter เพื่อให้อัปเกรดของเดิมได้)
+alter table public.accounts add column if not exists bank text;
+
 -- หมวดหมู่รายรับ / รายจ่าย
 create table if not exists public.categories (
   id           uuid primary key default gen_random_uuid(),

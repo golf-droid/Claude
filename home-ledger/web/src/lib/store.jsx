@@ -68,6 +68,7 @@ export function DataProvider({ session, children }) {
   const [online, setOnline] = useState(navigator.onLine)
   const [pending, setPending] = useState(() => readJSON(OUTBOX_KEY, []).length)
   const [syncing, setSyncing] = useState(false)
+  const [syncError, setSyncError] = useState(null)
   const flushing = useRef(false)
 
   // ---------------------------------------------------------------- outbox --
@@ -98,7 +99,9 @@ export function DataProvider({ session, children }) {
             // ข้อมูลผิดกติกา/ถูกลบไปแล้ว: ทิ้งงานนี้ ไม่งั้นคิวจะตันถาวร
             const permanent = !/network|fetch|timeout|Failed to fetch/i.test(res.error.message || '')
             if (!permanent) throw res.error
+            // ทิ้งเงียบ ๆ แล้วผู้ใช้เข้าใจว่าบันทึกสำเร็จคือกับดัก จึงต้องบอกให้เห็น
             console.warn('ข้ามงานที่ส่งไม่สำเร็จ:', op, res.error.message)
+            setSyncError(res.error.message || 'ส่งข้อมูลขึ้นคลาวด์ไม่สำเร็จ')
           }
         } catch (e) {
           // น่าจะเน็ตมีปัญหา — หยุดไว้ก่อน ค่อยลองใหม่รอบหน้า
@@ -341,6 +344,7 @@ export function DataProvider({ session, children }) {
           name: input.name,
           kind: input.kind,
           icon: input.icon,
+          bank: input.bank ?? null,
           opening_balance: input.opening_balance,
           is_active: input.is_active !== false
         }
@@ -353,6 +357,7 @@ export function DataProvider({ session, children }) {
           name: input.name,
           kind: input.kind ?? 'cash',
           icon: input.icon ?? '👛',
+          bank: input.bank ?? null,
           opening_balance: input.opening_balance ?? 0,
           sort_order: 100,
           is_active: true,
@@ -377,6 +382,8 @@ export function DataProvider({ session, children }) {
         }
         patchLocal('categories', (l) => l.map((c) => (c.id === input.id ? { ...c, ...patch } : c)))
         enqueue({ kind: 'update', table: 'categories', id: input.id, row: patch })
+        flush()
+        return input.id
       } else {
         const row = {
           id: newId(),
@@ -391,8 +398,9 @@ export function DataProvider({ session, children }) {
         }
         patchLocal('categories', (l) => [...l, row])
         enqueue({ kind: 'insert', table: 'categories', row })
+        flush()
+        return row.id
       }
-      flush()
     },
     [householdId, patchLocal, enqueue, flush]
   )
@@ -533,6 +541,8 @@ export function DataProvider({ session, children }) {
     online,
     pending,
     syncing,
+    syncError,
+    clearSyncError: () => setSyncError(null),
     addTransaction,
     updateTransaction,
     deleteTransaction,

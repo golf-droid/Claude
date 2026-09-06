@@ -6,6 +6,7 @@ import MonthPicker from '../components/MonthPicker.jsx'
 import TransactionList from '../components/TransactionList.jsx'
 import { BarRow, Donut } from '../components/Charts.jsx'
 import Money from '../components/Money.jsx'
+import { accountColor } from '../lib/banks.js'
 
 export default function Dashboard() {
   const { transactions, balances, totalBalance, categoryById, budgets, monthSummary } = useData()
@@ -83,7 +84,10 @@ export default function Dashboard() {
         <ul className="account-list">
           {balances.filter((a) => a.is_active !== false).map((a) => (
             <li key={a.id}>
-              <span className="acc-icon">{a.icon}</span>
+              <span
+                className="acc-icon"
+                style={accountColor(a) ? { background: accountColor(a) + '22', boxShadow: `inset 0 0 0 1.5px ${accountColor(a)}55` } : undefined}
+              >{a.icon}</span>
               <span className="acc-name">{a.name}</span>
               <Money value={a.balance} />
             </li>

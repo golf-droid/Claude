@@ -408,3 +408,36 @@ input:focus, select:focus, textarea:focus {
   animation: spin .8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg) } }
+
+/* ปุ่มเพิ่มหมวดหมู่ในฟอร์มบันทึกรายการ + แผงกรอกในตัว */
+.chip.add {
+  border-style: dashed;
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  font-weight: 600;
+}
+.inline-form {
+  margin-top: .6rem;
+  padding: .7rem;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+}
+.emoji-input.narrow { width: 3.2rem; flex: none; }
+
+/* แจ้งเตือนเมื่อส่งข้อมูลขึ้นคลาวด์ไม่สำเร็จแบบกู้เองไม่ได้ */
+.sync-error {
+  margin: .9rem 1rem 0;
+  padding: .7rem .8rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  background: color-mix(in srgb, var(--neg) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--neg) 35%, transparent);
+}
+.sync-error p { margin: .2rem 0 0; color: var(--muted); }
+.sync-error strong { color: var(--neg); }

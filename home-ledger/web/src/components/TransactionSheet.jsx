@@ -2,6 +2,10 @@ import { useMemo, useState } from 'react'
 import Modal from './Modal.jsx'
 import { useData } from '../lib/store.jsx'
 import { parseAmount, todayKey } from '../lib/format.js'
+import { accountColor, accountLabel } from '../lib/banks.js'
+
+const NEW_CATEGORY_COLORS = ['#f97316', '#ef4444', '#eab308', '#16a34a',
+  '#0891b2', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b']
 
 const TYPES = [
   { key: 'expense', label: 'รายจ่าย' },
@@ -12,7 +16,7 @@ const TYPES = [
 export default function TransactionSheet({ onClose, editing }) {
   const {
     accounts, categories, members, userId,
-    addTransaction, updateTransaction, deleteTransaction
+    addTransaction, updateTransaction, deleteTransaction, saveCategory
   } = useData()
 
   const activeAccounts = accounts.filter((a) => a.is_active !== false)
@@ -27,6 +31,23 @@ export default function TransactionSheet({ onClose, editing }) {
   const [note, setNote] = useState(editing?.note ?? '')
   const [paidBy, setPaidBy] = useState(editing?.paid_by ?? userId)
   const [err, setErr] = useState('')
+
+  // ฟอร์มเพิ่มหมวดหมู่แบบไม่ต้องออกจากหน้านี้
+  const [adding, setAdding] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newIcon, setNewIcon] = useState('🏷️')
+  const [newColor, setNewColor] = useState(NEW_CATEGORY_COLORS[0])
+
+  const addCategory = () => {
+    const name = newName.trim()
+    if (!name) return
+    const id = saveCategory({ kind: type, name, icon: newIcon || '🏷️', color: newColor })
+    if (id) setCategoryId(id)
+    setAdding(false)
+    setNewName('')
+    setNewIcon('🏷️')
+    setErr('')
+  }
 
   const visibleCategories = useMemo(
     () => categories.filter((c) => c.kind === type && c.is_active !== false),
@@ -127,19 +148,60 @@ export default function TransactionSheet({ onClose, editing }) {
                 <span>{c.icon}</span> {c.name}
               </button>
             ))}
-            {visibleCategories.length === 0 && (
-              <span className="muted">ยังไม่มีหมวดหมู่ ไปเพิ่มได้ที่หน้าตั้งค่า</span>
-            )}
+            <button className="chip add" onClick={() => setAdding((v) => !v)}>
+              {adding ? '✕ ยกเลิก' : '+ เพิ่มหมวด'}
+            </button>
           </div>
+
+          {adding && (
+            <div className="inline-form">
+              <div className="row gap">
+                <input
+                  className="emoji-input narrow"
+                  value={newIcon}
+                  maxLength={2}
+                  onChange={(e) => setNewIcon(e.target.value)}
+                  aria-label="ไอคอน"
+                />
+                <input
+                  className="grow"
+                  autoFocus
+                  placeholder={type === 'income' ? 'ชื่อหมวดรายรับใหม่' : 'ชื่อหมวดรายจ่ายใหม่'}
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCategory())}
+                />
+              </div>
+              <div className="swatches">
+                {NEW_CATEGORY_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`swatch ${newColor === c ? 'on' : ''}`}
+                    style={{ background: c }}
+                    onClick={() => setNewColor(c)}
+                    aria-label={`สี ${c}`}
+                  />
+                ))}
+              </div>
+              <button className="btn primary block" onClick={addCategory} disabled={!newName.trim()}>
+                เพิ่มหมวด “{newName.trim() || '…'}” แล้วเลือกเลย
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       <div className="grid-2">
         <label className="field">
           <span className="field-label">{type === 'transfer' ? 'จากกระเป๋า' : 'กระเป๋าเงิน'}</span>
-          <select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+          <select
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
+            style={{ borderLeft: `4px solid ${accountColor(accounts.find((a) => a.id === accountId)) ?? 'transparent'}` }}
+          >
             {activeAccounts.map((a) => (
-              <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
+              <option key={a.id} value={a.id}>{accountLabel(a)}</option>
             ))}
           </select>
         </label>
@@ -147,9 +209,13 @@ export default function TransactionSheet({ onClose, editing }) {
         {type === 'transfer' ? (
           <label className="field">
             <span className="field-label">ไปกระเป๋า</span>
-            <select value={toAccountId} onChange={(e) => setToAccountId(e.target.value)}>
+            <select
+              value={toAccountId}
+              onChange={(e) => setToAccountId(e.target.value)}
+              style={{ borderLeft: `4px solid ${accountColor(accounts.find((a) => a.id === toAccountId)) ?? 'transparent'}` }}
+            >
               {activeAccounts.map((a) => (
-                <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
+                <option key={a.id} value={a.id}>{accountLabel(a)}</option>
               ))}
             </select>
           </label>

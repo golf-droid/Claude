@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js'
 import { useData } from '../lib/store.jsx'
 import { currentMonthKey, fmtMoney, monthLabel, parseAmount } from '../lib/format.js'
 import Modal from '../components/Modal.jsx'
+import { accountColor, banksFor, bankOf } from '../lib/banks.js'
 
 const ACCOUNT_KINDS = [
   { key: 'cash', label: 'เงินสด' },
@@ -13,13 +14,32 @@ const ACCOUNT_KINDS = [
 const PALETTE = ['#ef4444', '#f97316', '#eab308', '#16a34a', '#0891b2',
   '#2563eb', '#8b5cf6', '#ec4899', '#64748b']
 
+const KIND_ICON = { cash: '💵', bank: '🏦', ewallet: '📱', credit: '💳' }
+
 function AccountDialog({ account, onClose }) {
   const { saveAccount } = useData()
   const [name, setName] = useState(account?.name ?? '')
   const [kind, setKind] = useState(account?.kind ?? 'cash')
   const [icon, setIcon] = useState(account?.icon ?? '👛')
+  const [bank, setBank] = useState(account?.bank ?? '')
   const [opening, setOpening] = useState(String(account?.opening_balance ?? '0'))
   const [active, setActive] = useState(account?.is_active !== false)
+
+  const bankChoices = banksFor(kind)
+
+  const pickKind = (next) => {
+    setKind(next)
+    if (banksFor(next).every((b) => b.code !== bank)) setBank('')
+    if (!account && (!icon || Object.values(KIND_ICON).includes(icon))) setIcon(KIND_ICON[next])
+  }
+
+  /** เลือกธนาคารแล้วเติมชื่อให้เลย ถ้าผู้ใช้ยังไม่ได้ตั้งชื่อเองไว้ */
+  const pickBank = (code) => {
+    const before = bankOf(bank)
+    const after = bankOf(code)
+    setBank(code)
+    if (after && (!name.trim() || (before && name.trim() === before.name))) setName(after.name)
+  }
 
   const save = () => {
     if (!name.trim()) return
@@ -28,6 +48,7 @@ function AccountDialog({ account, onClose }) {
       name: name.trim(),
       kind,
       icon: icon || '👛',
+      bank: bank || null,
       opening_balance: parseAmount(opening) || 0,
       is_active: active
     })
@@ -52,10 +73,29 @@ function AccountDialog({ account, onClose }) {
       </div>
       <label className="field">
         <span className="field-label">ประเภท</span>
-        <select value={kind} onChange={(e) => setKind(e.target.value)}>
+        <select value={kind} onChange={(e) => pickKind(e.target.value)}>
           {ACCOUNT_KINDS.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
         </select>
       </label>
+
+      {bankChoices.length > 0 && (
+        <label className="field">
+          <span className="field-label">
+            {kind === 'ewallet' ? 'วอลเล็ท / พร้อมเพย์' : 'ธนาคาร'}
+          </span>
+          <select
+            value={bank}
+            onChange={(e) => pickBank(e.target.value)}
+            style={{ borderLeft: `4px solid ${bankOf(bank)?.color ?? 'transparent'}` }}
+          >
+            <option value="">— ไม่ระบุ —</option>
+            {bankChoices.map((b) => (
+              <option key={b.code} value={b.code}>{b.name}</option>
+            ))}
+          </select>
+          <span className="hint">เลือกแล้วชื่อกระเป๋าจะเติมให้เอง แก้เป็นชื่ออื่นได้ เช่น “กสิกร ออมทรัพย์”</span>
+        </label>
+      )}
       <label className="field">
         <span className="field-label">ยอดยกมา (ยอดตั้งต้นก่อนเริ่มบันทึก)</span>
         <input inputMode="decimal" value={opening} onChange={(e) => setOpening(e.target.value)} />
@@ -276,9 +316,15 @@ export default function Settings() {
           {balances.map((a) => (
             <li key={a.id}>
               <button className="setting-row" onClick={() => setAccountDialog(a)}>
-                <span className="acc-icon">{a.icon}</span>
+                <span
+                  className="acc-icon"
+                  style={accountColor(a) ? { background: accountColor(a) + '22', boxShadow: `inset 0 0 0 1.5px ${accountColor(a)}55` } : undefined}
+                >{a.icon}</span>
                 <span className="grow">
                   {a.name}
+                  {bankOf(a.bank) && !a.name.includes(bankOf(a.bank).name) && (
+                    <span className="tag">{bankOf(a.bank).name}</span>
+                  )}
                   {a.is_active === false && <span className="tag">ปิดใช้งาน</span>}
                 </span>
                 <span className="muted">{fmtMoney(a.balance)}</span>

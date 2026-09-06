@@ -11,7 +11,7 @@ const TABS = [
 ]
 
 export default function Layout() {
-  const { online, pending, syncing, household } = useData()
+  const { online, pending, syncing, household, syncError, clearSyncError } = useData()
   const [adding, setAdding] = useState(false)
 
   return (
@@ -35,6 +35,20 @@ export default function Layout() {
       </header>
 
       <main className="content">
+        {syncError && (
+          <div className="sync-error" role="alert">
+            <div>
+              <strong>บันทึกขึ้นคลาวด์ไม่สำเร็จ</strong>
+              <p className="small">{syncError}</p>
+              <p className="small">
+                ถ้าข้อความบอกว่าไม่พบคอลัมน์ แปลว่าฐานข้อมูลยังไม่ได้อัปเดต
+                ให้รันไฟล์ <code>supabase/migrations/001_account_bank.sql</code> ใน SQL Editor ของ Supabase
+                แล้วลองใหม่อีกครั้ง
+              </p>
+            </div>
+            <button className="icon-btn" onClick={clearSyncError} aria-label="ปิด">✕</button>
+          </div>
+        )}
         <Outlet />
       </main>
 
