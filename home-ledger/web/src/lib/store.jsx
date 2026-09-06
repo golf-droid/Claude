@@ -473,6 +473,20 @@ export function DataProvider({ session, children }) {
     [bootstrap]
   )
 
+  /** เข้าบ้านของครอบครัวโดยไม่ต้องใช้รหัสเชิญ (ใช้กับการล็อกอินด้วยรหัสประจำตัว) */
+  const enterFamily = useCallback(
+    async (displayName) => {
+      const { data, error: e } = await supabase.rpc('enter_family', {
+        p_display_name: displayName
+      })
+      if (e) throw e
+      localStorage.setItem(HOUSEHOLD_KEY, data)
+      await bootstrap()
+      return data
+    },
+    [bootstrap]
+  )
+
   const joinHousehold = useCallback(
     async (code, displayName) => {
       const { data, error: e } = await supabase.rpc('join_household', {
@@ -553,6 +567,7 @@ export function DataProvider({ session, children }) {
     createInvite,
     createHousehold,
     joinHousehold,
+    enterFamily,
     refresh
   }
 

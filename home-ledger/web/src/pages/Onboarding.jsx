@@ -1,15 +1,42 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { useData } from '../lib/store.jsx'
+import { forgetPerson, rememberedPerson } from '../lib/people.js'
 
 export default function Onboarding() {
-  const { createHousehold, joinHousehold } = useData()
+  const { createHousehold, joinHousehold, enterFamily } = useData()
+  const person = rememberedPerson()
   const [tab, setTab] = useState('create')
   const [name, setName] = useState('บ้านของเรา')
-  const [displayName, setDisplayName] = useState('')
+  const [displayName, setDisplayName] = useState(person?.name ?? '')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const [auto, setAuto] = useState(Boolean(person))
+
+  // เข้าด้วยรหัสประจำตัวมา ระบบรู้อยู่แล้วว่าเป็นใคร จึงพาเข้าบ้านให้เลย
+  useEffect(() => {
+    if (!person) return
+    let cancelled = false
+    enterFamily(person.name).catch((e) => {
+      if (cancelled) return
+      setErr(e.message || String(e))
+      setAuto(false)
+    })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  if (auto) {
+    return (
+      <div className="centered-page">
+        <div className="card narrow" style={{ alignItems: 'center', textAlign: 'center' }}>
+          <div className="spinner" style={{ margin: '0 auto' }} />
+          <p className="muted">กำลังพาเข้าบ้าน…</p>
+        </div>
+      </div>
+    )
+  }
 
   const submit = async (e) => {
     e.preventDefault()
@@ -68,7 +95,11 @@ export default function Onboarding() {
         <button className="btn primary block" disabled={busy}>
           {busy ? 'กำลังดำเนินการ…' : tab === 'create' ? 'สร้างบ้าน' : 'เข้าร่วมบ้าน'}
         </button>
-        <button type="button" className="btn link block" onClick={() => supabase.auth.signOut()}>
+        <button
+          type="button"
+          className="btn link block"
+          onClick={() => { forgetPerson(); supabase.auth.signOut() }}
+        >
           ออกจากระบบ
         </button>
       </form>

@@ -5,6 +5,7 @@ import { currentMonthKey, fmtMoney, monthLabel, parseAmount } from '../lib/forma
 import Modal from '../components/Modal.jsx'
 import { accountColor, banksFor, bankOf } from '../lib/banks.js'
 import { ACCOUNT_KINDS, kindOf } from '../lib/accounts.js'
+import { forgetPerson } from '../lib/people.js'
 
 const PALETTE = ['#ef4444', '#f97316', '#eab308', '#16a34a', '#0891b2',
   '#2563eb', '#8b5cf6', '#ec4899', '#64748b']
@@ -373,7 +374,10 @@ export default function Settings() {
           <button className="btn block" onClick={refresh}>
             ซิงก์ข้อมูลเดี๋ยวนี้{pending ? ` (ค้างอยู่ ${pending})` : ''}
           </button>
-          <button className="btn danger-ghost block" onClick={() => supabase.auth.signOut()}>
+          <button
+            className="btn danger-ghost block"
+            onClick={() => { forgetPerson(); supabase.auth.signOut() }}
+          >
             ออกจากระบบ
           </button>
         </div>
