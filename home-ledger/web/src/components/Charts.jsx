@@ -1,4 +1,4 @@
-import { fmtMoneyShort } from '../lib/format.js'
+import { CCY, fmtMoneyShort } from '../lib/format.js'
 
 /** โดนัทชาร์ตวาดด้วย SVG ล้วน ไม่พึ่งไลบรารีภายนอก */
 export function Donut({ slices, size = 168, thickness = 26, centerTop, centerBottom }) {
@@ -28,7 +28,7 @@ export function Donut({ slices, size = 168, thickness = 26, centerTop, centerBot
                 strokeDashoffset={-offset}
                 strokeLinecap="butt"
               >
-                <title>{`${s.label}: ${fmtMoneyShort(s.value)} บาท`}</title>
+                <title>{`${s.label}: ${fmtMoneyShort(s.value)} ${CCY}`}</title>
               </circle>
             )
             offset += len

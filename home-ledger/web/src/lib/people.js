@@ -1,7 +1,9 @@
 /**
  * รายชื่อคนในบ้านและรหัสประจำตัวสำหรับเข้าใช้งาน
  *
- * เพิ่ม/แก้คนได้ที่ไฟล์นี้ไฟล์เดียว แล้ว push ขึ้น GitHub — Vercel จะ deploy ให้เอง
+ * ตั้งรายชื่อผ่าน environment variable VITE_PEOPLE ของ Vercel เช่น
+ *   VITE_PEOPLE=01:พ่อ,02:แม่,03:กอล์ฟ,04:เกรซ
+ * ถ้าไม่ตั้ง จะใช้รายชื่อเริ่มต้นใน config.js
  * ถ้าเปลี่ยนรหัสของใคร คนนั้นจะกลายเป็น "คนใหม่" ในระบบ (บัญชีผูกกับรหัส)
  * ให้เข้ามาแล้วลบชื่อเดิมทิ้งที่หน้าตั้งค่า
  *
@@ -9,15 +11,12 @@
  * เดาครบทุกความเป็นไปได้ได้ใน 100 ครั้ง ถ้าอยากแน่นขึ้นให้เปลี่ยนเป็น 4–6 หลัก
  * (เช่น '1032') ใช้งานเหมือนเดิมทุกอย่าง แค่พิมพ์ยาวขึ้นครั้งเดียวต่อเครื่อง
  */
-export const PEOPLE = [
-  { code: '01', name: 'พ่อ',    color: '#2563eb' },
-  { code: '02', name: 'แม่',    color: '#16a34a' },
-  { code: '03', name: 'กอล์ฟ',  color: '#f97316' },
-  { code: '04', name: 'เกรซ',   color: '#8b5cf6' }
-]
+import { CONFIG } from './config.js'
+
+export const PEOPLE = CONFIG.people
 
 /** ใช้แยกชุดบัญชีของบ้านนี้ออกจากบ้านอื่น เผื่อมีคนเอาโค้ดไปใช้ต่อ */
-const SLUG = import.meta.env.VITE_HOUSEHOLD_SLUG || 'home'
+const SLUG = CONFIG.slug
 
 export const peopleCodeLength = Math.max(...PEOPLE.map((p) => p.code.length))
 

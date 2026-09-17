@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js'
 import {
   PEOPLE, credentialsFor, peopleCodeLength, personByCode, rememberPerson
 } from '../lib/people.js'
+import { CONFIG, CURRENCY_MARK } from '../lib/config.js'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫']
 
@@ -72,9 +73,9 @@ function CodeLogin({ onUseEmail }) {
   return (
     <div className="card narrow pin-card">
       <div className="logo">
-        <span className="logo-mark">฿</span>
+        <span className="logo-mark">{CURRENCY_MARK}</span>
         <div>
-          <h1>บัญชีบ้านเรา</h1>
+          <h1>{CONFIG.appName}</h1>
           <p className="muted small">ใส่รหัสประจำตัวของคุณ</p>
         </div>
       </div>
@@ -165,7 +166,7 @@ function EmailLogin({ onUseCode }) {
   return (
     <form className="card narrow" onSubmit={submit}>
       <div className="logo">
-        <span className="logo-mark">฿</span>
+        <span className="logo-mark">{CURRENCY_MARK}</span>
         <div>
           <h1>เข้าด้วยอีเมล</h1>
           <p className="muted small">สำหรับบัญชีที่สมัครไว้ก่อนหน้า</p>

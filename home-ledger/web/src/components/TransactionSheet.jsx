@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Modal from './Modal.jsx'
 import { useData } from '../lib/store.jsx'
-import { parseAmount, todayKey } from '../lib/format.js'
+import { CCY, parseAmount, todayKey } from '../lib/format.js'
 import { accountColor, accountLabel } from '../lib/banks.js'
+import { CONFIG } from '../lib/config.js'
+import { deleteReceipt, receiptUrl, uploadReceipt } from '../lib/receipts.js'
 
 const NEW_CATEGORY_COLORS = ['#f97316', '#ef4444', '#eab308', '#16a34a',
   '#0891b2', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b']
@@ -15,7 +17,7 @@ const TYPES = [
 
 export default function TransactionSheet({ onClose, editing }) {
   const {
-    accounts, categories, members, userId,
+    accounts, categories, members, userId, household,
     addTransaction, updateTransaction, deleteTransaction, saveCategory
   } = useData()
 
@@ -39,6 +41,46 @@ export default function TransactionSheet({ onClose, editing }) {
   const [note, setNote] = useState(editing?.note ?? '')
   const [paidBy, setPaidBy] = useState(editing?.paid_by ?? userId)
   const [err, setErr] = useState('')
+
+  // รูปใบเสร็จ
+  const fileRef = useRef(null)
+  const [receiptPath, setReceiptPath] = useState(editing?.receipt_path ?? null)
+  const [receiptSrc, setReceiptSrc] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [viewing, setViewing] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    if (!receiptPath) { setReceiptSrc(null); return }
+    receiptUrl(receiptPath).then((url) => { if (alive) setReceiptSrc(url) })
+    return () => { alive = false }
+  }, [receiptPath])
+
+  const pickPhoto = async (ev) => {
+    const file = ev.target.files?.[0]
+    ev.target.value = ''            // เลือกไฟล์เดิมซ้ำได้
+    if (!file) return
+    setUploading(true)
+    setErr('')
+    try {
+      const previous = receiptPath
+      const path = await uploadReceipt(file, household?.id, userId)
+      setReceiptPath(path)
+      if (previous) deleteReceipt(previous)    // เปลี่ยนรูป: เก็บกวาดใบเก่า
+    } catch (e) {
+      setErr(e.message || String(e))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const dropPhoto = () => {
+    if (!confirm('ลบรูปใบเสร็จนี้?')) return
+    const path = receiptPath
+    setReceiptPath(null)
+    setReceiptSrc(null)
+    if (path) deleteReceipt(path)
+  }
 
   // ฟอร์มเพิ่มหมวดหมู่แบบไม่ต้องออกจากหน้านี้
   const [adding, setAdding] = useState(false)
@@ -87,6 +129,7 @@ export default function TransactionSheet({ onClose, editing }) {
       to_account_id: type === 'transfer' ? toAccountId : null,
       category_id: type === 'transfer' ? null : categoryId,
       note: note.trim(),
+      receipt_path: receiptPath,
       paid_by: paidBy
     }
     if (editing) updateTransaction(editing.id, payload)
@@ -97,6 +140,7 @@ export default function TransactionSheet({ onClose, editing }) {
   const remove = () => {
     if (!editing) return
     if (!confirm('ลบรายการนี้?')) return
+    if (editing.receipt_path) deleteReceipt(editing.receipt_path)
     deleteTransaction(editing.id)
     onClose()
   }
@@ -141,7 +185,7 @@ export default function TransactionSheet({ onClose, editing }) {
       </div>
 
       <label className="field amount-field">
-        <span className="field-label">จำนวนเงิน (บาท)</span>
+        <span className="field-label">จำนวนเงิน ({CCY})</span>
         <input
           className="amount-input"
           inputMode="decimal"
@@ -273,8 +317,60 @@ export default function TransactionSheet({ onClose, editing }) {
         </label>
       </div>
 
+      {CONFIG.receipts && (
+        <div className="field">
+          <span className="field-label">ใบเสร็จ</span>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={pickPhoto}
+          />
+          {receiptPath ? (
+            <div className="receipt-box">
+              {receiptSrc
+                ? <img className="receipt-thumb" src={receiptSrc} alt="รูปใบเสร็จ" onClick={() => setViewing(true)} />
+                : <div className="receipt-thumb placeholder">กำลังโหลด…</div>}
+              <div className="stack grow">
+                <button type="button" className="btn" onClick={() => setViewing(true)} disabled={!receiptSrc}>
+                  ดูเต็มจอ
+                </button>
+                {!readOnly && (
+                  <>
+                    <button type="button" className="btn" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                      {uploading ? 'กำลังอัปโหลด…' : 'เปลี่ยนรูป'}
+                    </button>
+                    <button type="button" className="btn danger-ghost" onClick={dropPhoto} disabled={uploading}>
+                      ลบรูป
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn receipt-add"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading || readOnly}
+            >
+              {uploading ? 'กำลังอัปโหลด…' : '📷 ถ่ายรูป หรือเลือกจากคลัง'}
+            </button>
+          )}
+        </div>
+      )}
+
       {err && <p className="error">{err}</p>}
       </fieldset>
+
+      {viewing && receiptSrc && (
+        <div className="lightbox" onClick={() => setViewing(false)} role="dialog" aria-label="รูปใบเสร็จ">
+          <img src={receiptSrc} alt="รูปใบเสร็จ" />
+          <span className="lightbox-hint">แตะที่ใดก็ได้เพื่อปิด</span>
+        </div>
+      )}
     </Modal>
   )
 }

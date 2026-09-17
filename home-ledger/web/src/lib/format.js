@@ -1,3 +1,5 @@
+import { CONFIG, CURRENCY_SYMBOL } from './config.js'
+
 export const THAI_MONTHS = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
@@ -5,11 +7,17 @@ export const THAI_MONTHS = [
 const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
   'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 
-const money = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const moneyShort = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 })
+const money = new Intl.NumberFormat(CONFIG.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const moneyShort = new Intl.NumberFormat(CONFIG.locale, { maximumFractionDigits: 0 })
 
 export const fmtMoney = (n) => money.format(Number(n) || 0)
 export const fmtMoneyShort = (n) => moneyShort.format(Number(n) || 0)
+
+/** สัญลักษณ์สกุลเงินของเว็บนี้ (฿ สำหรับบ้านเรา, $ สำหรับกลุ่มที่ใช้ AUD) */
+export const CCY = CURRENCY_SYMBOL
+
+/** ปีตามรูปแบบที่ตั้งไว้: พ.ศ. หรือ ค.ศ. */
+const displayYear = (y) => (CONFIG.yearFormat === 'ce' ? y : y + 543)
 
 /** yyyy-mm-dd ตามเวลาท้องถิ่น (ไม่ใช้ toISOString เพราะจะเพี้ยนข้ามวันตามโซนเวลา) */
 export function toDateKey(d) {
@@ -36,7 +44,7 @@ export function shiftMonth(monthKey, delta) {
 export function monthLabel(monthKey, short = false) {
   const [y, m] = monthKey.split('-').map(Number)
   const names = short ? THAI_MONTHS_SHORT : THAI_MONTHS
-  return `${names[m - 1]} ${y + 543}`
+  return `${names[m - 1]} ${displayYear(y)}`
 }
 
 export function shortMonthLabel(monthKey) {
@@ -51,7 +59,7 @@ export function dayLabel(dateKey) {
   const yst = new Date()
   yst.setDate(yst.getDate() - 1)
   if (dateKey === toDateKey(yst)) return 'เมื่อวาน'
-  return `${d} ${THAI_MONTHS_SHORT[m - 1]} ${String(y + 543).slice(-2)}`
+  return `${d} ${THAI_MONTHS_SHORT[m - 1]} ${String(displayYear(y)).slice(-2)}`
 }
 
 /** จำนวนเงินที่พิมพ์มา อาจมีคอมมา หรือเป็นนิพจน์เช่น 120+35 */

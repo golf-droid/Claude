@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../lib/store.jsx'
-import { currentMonthKey, fmtMoney, fmtMoneyShort, monthKeyOf } from '../lib/format.js'
+import { CCY, currentMonthKey, fmtMoney, fmtMoneyShort, monthKeyOf } from '../lib/format.js'
 import MonthPicker from '../components/MonthPicker.jsx'
 import TransactionList from '../components/TransactionList.jsx'
 import { BarRow, Donut } from '../components/Charts.jsx'
@@ -68,10 +68,10 @@ export default function Dashboard() {
 
       <section className="card hero">
         <span className="hero-label">ยอดเงินคงเหลือรวม</span>
-        <strong className="hero-value">{fmtMoney(totalBalance)} ฿</strong>
+        <strong className="hero-value">{fmtMoney(totalBalance)} {CCY}</strong>
         {wallets.reserve.length > 0 && (
           <p className="hero-note">
-            ใช้ได้ {fmtMoneyShort(wallets.spendTotal)} ฿ · เก็บและลงทุนไว้แล้ว {fmtMoneyShort(wallets.reserveTotal)} ฿
+            ใช้ได้ {fmtMoneyShort(wallets.spendTotal)} {CCY} · เก็บและลงทุนไว้แล้ว {fmtMoneyShort(wallets.reserveTotal)} {CCY}
           </p>
         )}
         <div className="hero-split">
@@ -137,7 +137,7 @@ export default function Dashboard() {
             <Donut
               slices={slices}
               centerTop="จ่ายรวม"
-              centerBottom={`${fmtMoneyShort(summary.expense)} ฿`}
+              centerBottom={`${fmtMoneyShort(summary.expense)} ${CCY}`}
             />
             <ul className="legend">
               {slices.map((s) => (
@@ -172,8 +172,8 @@ export default function Dashboard() {
                 right={`${fmtMoneyShort(b.spent)} / ${fmtMoneyShort(b.amount)}`}
                 sub={
                   over
-                    ? `เกินงบ ${fmtMoney(b.spent - Number(b.amount))} ฿`
-                    : `เหลือ ${fmtMoney(Number(b.amount) - b.spent)} ฿`
+                    ? `เกินงบ ${fmtMoney(b.spent - Number(b.amount))} ${CCY}`
+                    : `เหลือ ${fmtMoney(Number(b.amount) - b.spent)} ${CCY}`
                 }
               />
             )

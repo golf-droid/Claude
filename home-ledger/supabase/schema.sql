@@ -84,6 +84,7 @@ create table if not exists public.transactions (
   to_account_id uuid references public.accounts on delete restrict,
   category_id   uuid references public.categories on delete restrict,
   note          text not null default '',
+  receipt_path  text,                                              -- รูปใบเสร็จใน Storage
   paid_by       uuid references auth.users on delete set null,  -- รายการนี้เป็นของใคร
   created_by    uuid references auth.users on delete set null,  -- ใครเป็นคนบันทึก
   created_at    timestamptz not null default now(),
@@ -116,6 +117,9 @@ create table if not exists public.budgets (
   amount       numeric(14, 2) not null check (amount >= 0),
   unique (household_id, category_id, month)
 );
+
+-- เผื่อฐานข้อมูลที่สร้างไว้ก่อนมีฟีเจอร์ใบเสร็จ
+alter table public.transactions add column if not exists receipt_path text;
 
 -- อัปเดต updated_at อัตโนมัติ
 create or replace function public.touch_updated_at()

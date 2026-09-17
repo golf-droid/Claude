@@ -54,6 +54,7 @@ export default function TransactionList({ items, emptyText = 'ยังไม่
                             : cat?.name ?? 'ไม่ระบุหมวด'}
                         </span>
                         <span className="txn-sub">
+                          {t.receipt_path && <span className="has-receipt" title="มีรูปใบเสร็จ">🧾</span>}
                           {[t.note, acc?.name, who?.display_name].filter(Boolean).join(' · ')}
                         </span>
                       </span>

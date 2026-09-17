@@ -12,6 +12,10 @@
   --track: #eef2f6;
   --primary: #2563eb;
   --primary-ink: #ffffff;
+  --brand-from: #2563eb;
+  --brand-to: #0ea5e9;
+  --brand-ink: #ffffff;
+  --brand-shadow: rgba(37, 99, 235, .4);
   --pos: #16a34a;
   --neg: #ef4444;
   --radius: 16px;
@@ -30,6 +34,10 @@
     --line: #1e293b;
     --track: #1c273f;
     --primary: #3b82f6;
+    --brand-from: #2563eb;
+    --brand-to: #0ea5e9;
+    --brand-ink: #ffffff;
+    --brand-shadow: rgba(0, 0, 0, .45);
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
   }
 }
@@ -79,7 +87,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 .brand { display: flex; align-items: center; gap: .5rem; font-weight: 700; }
 .brand-dot {
   width: 10px; height: 10px; border-radius: 50%;
-  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  background: linear-gradient(135deg, var(--brand-from), var(--brand-to));
 }
 .sync-pill {
   font-size: .72rem; padding: .2rem .55rem; border-radius: 999px;
@@ -112,9 +120,9 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
   bottom: calc(76px + var(--safe-bottom));
   width: 56px; height: 56px; border-radius: 50%;
   border: none; cursor: pointer;
-  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  background: linear-gradient(135deg, var(--brand-from), var(--brand-to));
   color: #fff; font-size: 1.9rem; line-height: 1;
-  box-shadow: 0 6px 20px rgba(37, 99, 235, .4);
+  box-shadow: 0 6px 20px var(--brand-shadow);
 }
 .fab:active { transform: scale(.95); }
 
@@ -140,16 +148,16 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 .logo-mark {
   width: 46px; height: 46px; flex: none; border-radius: 14px;
   display: grid; place-items: center; font-size: 1.5rem; font-weight: 700;
-  background: linear-gradient(135deg, #2563eb, #0ea5e9); color: #fff;
+  background: linear-gradient(135deg, var(--brand-from), var(--brand-to)); color: #fff;
 }
 
-.hero { background: linear-gradient(135deg, #2563eb, #0ea5e9); color: #fff; border: none; }
+.hero { background: linear-gradient(135deg, var(--brand-from), var(--brand-to)); color: var(--brand-ink); border: none; }
 .hero-label { font-size: .8rem; opacity: .85; }
 .hero-value { display: block; font-size: 2rem; font-weight: 700; letter-spacing: -.02em; margin: .1rem 0 .8rem; }
 .hero-split { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
 .hero-split > div { display: flex; flex-direction: column; }
-.hero-split .muted { color: rgba(255, 255, 255, .8); }
-.hero-split .money { font-weight: 700; color: #fff; }
+.hero-split .muted { color: color-mix(in srgb, var(--brand-ink) 78%, transparent); }
+.hero-split .money { font-weight: 700; color: var(--brand-ink); }
 
 /* --------------------------------------------------------- controls --- */
 .field { display: flex; flex-direction: column; gap: .3rem; }
@@ -450,7 +458,7 @@ input:focus, select:focus, textarea:focus {
 }
 .hero-note {
   margin: 0 0 .7rem; font-size: .8rem;
-  color: rgba(255, 255, 255, .85);
+  color: color-mix(in srgb, var(--brand-ink) 85%, transparent);
   font-variant-numeric: tabular-nums;
 }
 
@@ -496,3 +504,70 @@ fieldset.bare {
   display: flex; flex-direction: column; gap: .8rem;
 }
 fieldset.bare:disabled { opacity: .72; }
+
+/* ==========================================================================
+   ธีมพาสเทล — เปิดด้วย VITE_THEME=pastel
+   พื้นผิวนุ่มโทนชมพู-ม่วง ส่วนตัวหนังสือและสีบอกความหมายเข้มพอให้อ่านออกจริง
+   (พาสเทลล้วนทั้งหน้าจะอ่านตัวเลขไม่ออก ซึ่งเป็นสิ่งเดียวที่แอปนี้ต้องทำได้ดี)
+   ========================================================================== */
+:root[data-app-theme="pastel"] {
+  --bg: #FBF6FA;
+  --surface: #FFFFFF;
+  --surface-2: #FBF4F8;
+  --text: #3A2E42;
+  --muted: #8B7A93;
+  --line: #F0E2EC;
+  --track: #F4E9F1;
+  --primary: #A6558A;
+  --primary-ink: #FFFFFF;
+  --brand-from: #E7A9C7;
+  --brand-to: #B9A7E4;
+  --brand-ink: #3A2E42;
+  --brand-shadow: rgba(200, 140, 180, .45);
+  --pos: #3F8C72;
+  --neg: #C4585F;
+  --shadow: 0 1px 2px rgba(120, 80, 110, .06), 0 8px 24px rgba(120, 80, 110, .07);
+}
+
+/* ต้องอยู่หลังบล็อกด้านบน และมี specificity เท่ากัน ลำดับในไฟล์จึงเป็นตัวตัดสิน */
+@media (prefers-color-scheme: dark) {
+  :root[data-app-theme="pastel"] {
+    --bg: #191320;
+    --surface: #221B2B;
+    --surface-2: #2A2234;
+    --text: #F2EAF4;
+    --muted: #A998B1;
+    --line: #342A3E;
+    --track: #2E2638;
+    --primary: #EEA9CE;
+    --primary-ink: #2A1B27;
+    --brand-from: #A57BC4;
+    --brand-to: #6E7FD0;
+    --brand-ink: #FBF4FA;
+    --brand-shadow: rgba(0, 0, 0, .5);
+    --pos: #74D2AC;
+    --neg: #F0938D;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
+  }
+}
+
+/* รูปใบเสร็จ */
+.receipt-add { width: 100%; padding: .8rem; border-style: dashed; }
+.receipt-box { display: flex; gap: .6rem; align-items: stretch; }
+.receipt-thumb {
+  width: 96px; height: 120px; flex: none; object-fit: cover;
+  border-radius: 10px; border: 1px solid var(--line); cursor: zoom-in; background: var(--surface-2);
+}
+.receipt-thumb.placeholder {
+  display: grid; place-items: center; font-size: .75rem; color: var(--muted); cursor: default;
+}
+.has-receipt { margin-right: .3rem; }
+.lightbox {
+  position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, .9);
+  display: grid; place-items: center; padding: 1rem; cursor: zoom-out;
+}
+.lightbox img { max-width: 100%; max-height: 88dvh; border-radius: 8px; }
+.lightbox-hint {
+  position: absolute; bottom: calc(1rem + var(--safe-bottom));
+  color: rgba(255, 255, 255, .7); font-size: .8rem;
+}

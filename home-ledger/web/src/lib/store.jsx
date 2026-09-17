@@ -293,6 +293,7 @@ export function DataProvider({ session, children }) {
         to_account_id: input.type === 'transfer' ? input.to_account_id : null,
         category_id: input.type === 'transfer' ? null : input.category_id,
         note: input.note ?? '',
+        receipt_path: input.receipt_path ?? null,
         paid_by: input.paid_by ?? userId,
         created_by: userId,
         created_at: now,
@@ -316,6 +317,7 @@ export function DataProvider({ session, children }) {
         to_account_id: input.type === 'transfer' ? input.to_account_id : null,
         category_id: input.type === 'transfer' ? null : input.category_id,
         note: input.note ?? '',
+        receipt_path: input.receipt_path ?? null,
         paid_by: input.paid_by ?? userId,
         updated_at: new Date().toISOString()
       }
