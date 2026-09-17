@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Modal from './Modal.jsx'
 import { useData } from '../lib/store.jsx'
-import { CCY, parseAmount, todayKey } from '../lib/format.js'
+import { CCY, fmtMoney, parseAmount, todayKey } from '../lib/format.js'
 import { accountColor, accountLabel } from '../lib/banks.js'
 import { CONFIG } from '../lib/config.js'
 import { deleteReceipt, receiptUrl, uploadReceipt } from '../lib/receipts.js'
@@ -17,8 +17,8 @@ const TYPES = [
 
 export default function TransactionSheet({ onClose, editing }) {
   const {
-    accounts, categories, members, userId, household,
-    addTransaction, updateTransaction, deleteTransaction, saveCategory
+    accounts, categories, members, userId, household, split,
+    addTransaction, updateTransaction, deleteTransaction, saveCategory, saveShares
   } = useData()
 
   const activeAccounts = accounts.filter((a) => a.is_active !== false)
@@ -41,6 +41,11 @@ export default function TransactionSheet({ onClose, editing }) {
   const [note, setNote] = useState(editing?.note ?? '')
   const [paidBy, setPaidBy] = useState(editing?.paid_by ?? userId)
   const [err, setErr] = useState('')
+
+  // หารเท่า
+  const existingShares = editing ? (split?.byTransaction?.[editing.id] ?? []) : []
+  const [splitOn, setSplitOn] = useState(existingShares.length > 0)
+  const [splitWith, setSplitWith] = useState(existingShares.map((x) => x.debtor))
 
   // รูปใบเสร็จ
   const fileRef = useRef(null)
@@ -107,8 +112,29 @@ export default function TransactionSheet({ onClose, editing }) {
   const pickType = (next) => {
     setType(next)
     if (next !== 'transfer') setCategoryId(null)
+    if (next !== 'expense') { setSplitOn(false); setSplitWith([]) }
     setErr('')
   }
+
+  const toggleSplit = (on) => {
+    setSplitOn(on)
+    setErr('')
+    // ต้องรู้ว่าใครออกเงินไปก่อน ถ้ายังเป็น "ส่วนกลาง" ให้ถือว่าเป็นของคนที่กำลังบันทึก
+    if (on && !paidBy) setPaidBy(userId)
+    if (!on) setSplitWith([])
+  }
+
+  const toggleDebtor = (id) =>
+    setSplitWith((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]))
+
+  // ยอดที่แต่ละคนต้องจ่าย — เศษสตางค์ตกที่คนออกเงิน เพราะเป็นคนเลือกหารเอง
+  const splitMath = (() => {
+    const total = parseAmount(amount)
+    const debtors = splitWith.filter((id) => id !== paidBy)
+    if (!isFinite(total) || total <= 0 || debtors.length === 0) return null
+    const each = Math.round((total / (debtors.length + 1)) * 100) / 100
+    return { people: debtors.length + 1, each, mine: Math.round((total - each * debtors.length) * 100) / 100 }
+  })()
 
   const submit = () => {
     const value = parseAmount(amount)
@@ -132,8 +158,16 @@ export default function TransactionSheet({ onClose, editing }) {
       receipt_path: receiptPath,
       paid_by: paidBy
     }
-    if (editing) updateTransaction(editing.id, payload)
-    else addTransaction(payload)
+    const saved = editing
+      ? (updateTransaction(editing.id, payload), { id: editing.id })
+      : addTransaction(payload)
+
+    if (CONFIG.split && saved?.id) {
+      const debtors = type === 'expense' && splitOn ? splitWith.filter((id) => id !== payload.paid_by) : []
+      if (debtors.length || existingShares.length) {
+        saveShares({ id: saved.id, amount: value, paid_by: payload.paid_by }, debtors)
+      }
+    }
     onClose()
   }
 
@@ -300,6 +334,50 @@ export default function TransactionSheet({ onClose, editing }) {
           </label>
         )}
       </div>
+
+      {CONFIG.split && type === 'expense' && (
+        <div className="field">
+          <label className="split-toggle">
+            <input type="checkbox" checked={splitOn} onChange={(e) => toggleSplit(e.target.checked)} />
+            <span>
+              <b>หารเท่า</b>
+              <small>แบ่งรายการนี้ให้เพื่อนช่วยจ่าย แล้วตามเก็บทีหลัง</small>
+            </span>
+          </label>
+
+          {splitOn && (
+            <div className="split-panel">
+              <span className="field-label">หารกับใครบ้าง</span>
+              <div className="chips">
+                {members.filter((m) => m.user_id !== paidBy).map((m) => (
+                  <button
+                    key={m.user_id}
+                    type="button"
+                    className={`chip ${splitWith.includes(m.user_id) ? 'selected' : ''}`}
+                    style={splitWith.includes(m.user_id)
+                      ? { borderColor: m.color, background: m.color + '22' } : undefined}
+                    onClick={() => toggleDebtor(m.user_id)}
+                  >
+                    {m.display_name}
+                  </button>
+                ))}
+                {members.filter((m) => m.user_id !== paidBy).length === 0 && (
+                  <span className="muted">ยังไม่มีสมาชิกคนอื่นในกลุ่ม</span>
+                )}
+              </div>
+
+              {splitMath ? (
+                <p className="split-preview">
+                  หาร <b>{splitMath.people} คน</b> · คนละ <b>{CCY}{fmtMoney(splitMath.each)}</b>
+                  {' · '}ส่วนของคุณ {CCY}{fmtMoney(splitMath.mine)}
+                </p>
+              ) : (
+                <p className="split-preview muted">ใส่จำนวนเงินและเลือกคนที่จะหารด้วย</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid-2">
         <label className="field">

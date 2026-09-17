@@ -5,13 +5,15 @@ import {
 } from '../lib/format.js'
 import { BarRow, MonthlyBars } from '../components/Charts.jsx'
 import MonthPicker from '../components/MonthPicker.jsx'
+import { CONFIG } from '../lib/config.js'
 
 const MEMBER_COLORS = ['#2563eb', '#16a34a', '#f97316', '#8b5cf6', '#0891b2', '#ec4899']
 
 export default function Reports() {
-  const { transactions, categoryById, memberById, members, monthSummary } = useData()
+  const { transactions, categoryById, memberById, members, monthSummary, split } = useData()
   const [month, setMonth] = useState(currentMonthKey())
   const [range, setRange] = useState(6)
+  const [whoBasis, setWhoBasis] = useState('paid')   // paid = จ่ายจริง, net = หลังหารแล้ว
 
   const trend = useMemo(() => {
     const out = []
@@ -60,12 +62,26 @@ export default function Reports() {
 
   const byMember = useMemo(() => {
     const m = new Map()
+    const add = (key, n) => m.set(key, (m.get(key) ?? 0) + n)
+
     for (const t of monthTxns) {
       if (t.type !== 'expense') continue
-      const key = t.paid_by ?? '_shared'
-      m.set(key, (m.get(key) ?? 0) + Number(t.amount))
+      add(t.paid_by ?? '_shared', Number(t.amount))
     }
+
+    // "หลังหารแล้ว": คนออกเงินหักส่วนที่เพื่อนต้องคืน แล้วบวกเข้าฝั่งคนที่ติดหนี้
+    // ทำให้เห็นว่าใครกินใครใช้จริง ๆ เท่าไหร่ ไม่ใช่แค่ใครบังเอิญเป็นคนจ่ายบิล
+    if (CONFIG.split && whoBasis === 'net') {
+      const inMonth = new Set(monthTxns.map((t) => t.id))
+      for (const sh of split.all) {
+        if (!inMonth.has(sh.transaction_id)) continue
+        add(sh.txn?.paid_by ?? '_shared', -Number(sh.amount))
+        add(sh.debtor, Number(sh.amount))
+      }
+    }
+
     const rows = [...m.entries()]
+      .filter(([, value]) => value > 0.004)
       .map(([id, value], i) => ({
         id,
         value,
@@ -75,7 +91,7 @@ export default function Reports() {
       .sort((a, b) => b.value - a.value)
     const total = rows.reduce((s, r) => s + r.value, 0)
     return { rows, total }
-  }, [monthTxns, memberById, members])
+  }, [monthTxns, memberById, members, whoBasis, split])
 
   return (
     <div className="page">
@@ -152,7 +168,21 @@ export default function Reports() {
       </section>
 
       <section className="card">
-        <h2 className="card-title">ใครใช้เท่าไหร่</h2>
+        <div className="card-head">
+          <h2 className="card-title">ใครใช้เท่าไหร่</h2>
+          {CONFIG.split && (
+            <div className="seg tiny">
+              <button
+                className={`seg-item ${whoBasis === 'paid' ? 'active' : ''}`}
+                onClick={() => setWhoBasis('paid')}
+              >จ่ายจริง</button>
+              <button
+                className={`seg-item ${whoBasis === 'net' ? 'active' : ''}`}
+                onClick={() => setWhoBasis('net')}
+              >หลังหารแล้ว</button>
+            </div>
+          )}
+        </div>
         {byMember.rows.length ? (
           byMember.rows.map((r) => (
             <BarRow

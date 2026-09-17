@@ -8,9 +8,10 @@ import { BarRow, Donut } from '../components/Charts.jsx'
 import Money from '../components/Money.jsx'
 import { accountColor } from '../lib/banks.js'
 import { splitByGroup } from '../lib/accounts.js'
+import { CONFIG } from '../lib/config.js'
 
 export default function Dashboard() {
-  const { transactions, balances, totalBalance, categoryById, budgets, monthSummary } = useData()
+  const { transactions, balances, totalBalance, categoryById, budgets, monthSummary, split } = useData()
   const [month, setMonth] = useState(currentMonthKey())
 
   const wallets = useMemo(
@@ -178,6 +179,31 @@ export default function Dashboard() {
               />
             )
           })}
+        </section>
+      )}
+
+      {CONFIG.split && (split.owedToMeTotal > 0 || split.iOweTotal > 0) && (
+        <section className="card">
+          <div className="card-head">
+            <h2 className="card-title">หารกัน</h2>
+            <Link className="btn link" to="/split">จัดการ</Link>
+          </div>
+          <div className="split-summary">
+            <div>
+              <span className="muted small">เพื่อนต้องคืนคุณ</span>
+              <strong className="num pos">{fmtMoney(split.owedToMeTotal)}</strong>
+            </div>
+            <div>
+              <span className="muted small">คุณต้องคืนเพื่อน</span>
+              <strong className="num neg">{fmtMoney(split.iOweTotal)}</strong>
+            </div>
+            <div>
+              <span className="muted small">สุทธิ</span>
+              <strong className={`num ${split.net >= 0 ? 'pos' : 'neg'}`}>
+                {split.net >= 0 ? '+' : '−'}{fmtMoney(Math.abs(split.net))}
+              </strong>
+            </div>
+          </div>
         </section>
       )}
 

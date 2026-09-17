@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from './supabase.js'
 import { monthKeyOf, shiftMonth, currentMonthKey } from './format.js'
+import { CONFIG } from './config.js'
 
 /**
  * ชั้นข้อมูลของแอป
@@ -23,7 +24,8 @@ const EMPTY = {
   accounts: [],
   categories: [],
   transactions: [],
-  budgets: []
+  budgets: [],
+  shares: []
 }
 
 const DataContext = createContext(null)
@@ -93,7 +95,11 @@ export function DataProvider({ session, children }) {
           let res
           if (op.kind === 'insert') res = await q.upsert(op.row)
           else if (op.kind === 'update') res = await q.update(op.row).eq('id', op.id)
-          else res = await q.delete().eq('id', op.id)
+          else if (op.match) {
+            let del = q.delete()
+            for (const [k, v] of Object.entries(op.match)) del = del.eq(k, v)
+            res = await del
+          } else res = await q.delete().eq('id', op.id)
 
           if (res.error) {
             // ข้อมูลผิดกติกา/ถูกลบไปแล้ว: ทิ้งงานนี้ ไม่งั้นคิวจะตันถาวร
@@ -126,7 +132,7 @@ export function DataProvider({ session, children }) {
         return `${m}-01`
       })()
 
-      const [hh, mem, acc, cat, txn, bud] = await Promise.all([
+      const [hh, mem, acc, cat, txn, bud, shares] = await Promise.all([
         supabase.from('households').select('*').eq('id', householdId).single(),
         supabase.from('household_members').select('*').eq('household_id', householdId),
         supabase.from('accounts').select('*').eq('household_id', householdId).order('sort_order'),
@@ -138,11 +144,17 @@ export function DataProvider({ session, children }) {
           .gte('txn_date', since)
           .order('txn_date', { ascending: false })
           .order('created_at', { ascending: false }),
-        supabase.from('budgets').select('*').eq('household_id', householdId)
+        supabase.from('budgets').select('*').eq('household_id', householdId),
+        // ตารางหารเท่าเป็นของเสริม บางโปรเจกต์ยังไม่ได้รัน migration 006
+        // จึงไม่เอาความผิดพลาดของมันมาทำให้ทั้งแอปเปิดไม่ได้
+        CONFIG.split
+          ? supabase.from('expense_shares').select('*').eq('household_id', householdId)
+          : Promise.resolve({ data: [], error: null })
       ])
 
       const firstError = [hh, mem, acc, cat, txn, bud].find((r) => r.error)?.error
       if (firstError) throw firstError
+      if (shares.error) console.warn('โหลดข้อมูลหารเท่าไม่ได้:', shares.error.message)
 
       const next = {
         household: hh.data,
@@ -151,7 +163,8 @@ export function DataProvider({ session, children }) {
         categories: cat.data ?? [],
         // เรียงซ้ำฝั่งเครื่องด้วย เพื่อให้ลำดับเหมือนกันเสมอไม่ว่าข้อมูลจะมาจากไหน
         transactions: sortTxns(txn.data ?? []),
-        budgets: bud.data ?? []
+        budgets: bud.data ?? [],
+        shares: shares.error ? [] : (shares.data ?? [])
       }
       setState(next)
       writeJSON(CACHE_PREFIX + householdId, next)
@@ -251,6 +264,11 @@ export function DataProvider({ session, children }) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'categories', filter: `household_id=eq.${householdId}` },
+        () => load(householdId).catch(() => {})
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'expense_shares', filter: `household_id=eq.${householdId}` },
         () => load(householdId).catch(() => {})
       )
       .subscribe()
@@ -407,6 +425,55 @@ export function DataProvider({ session, children }) {
     [householdId, patchLocal, enqueue, flush]
   )
 
+  /**
+   * หารเท่า — เขียนส่วนแบ่งของรายการหนึ่งใหม่ทั้งชุด
+   *
+   * คนที่ออกเงิน (paid_by) ไม่มีแถวของตัวเอง ส่วนของเขาคือยอดที่เหลือ
+   * เศษสตางค์ตกที่คนออกเงิน เพราะเขาเป็นคนเลือกที่จะหารเอง
+   */
+  const saveShares = useCallback(
+    (txn, debtorIds) => {
+      const txnId = txn.id
+      const previous = state.shares.filter((s) => s.transaction_id === txnId)
+
+      // ล้างของเดิมเสมอ แล้วค่อยเขียนชุดใหม่ ทำให้แก้รายการแล้วยอดไม่ค้าง
+      if (previous.length) {
+        patchLocal('shares', (l) => l.filter((s) => s.transaction_id !== txnId))
+        enqueue({ kind: 'delete', table: 'expense_shares', match: { transaction_id: txnId } })
+      }
+
+      const ids = (debtorIds ?? []).filter((id) => id && id !== txn.paid_by)
+      if (!ids.length) { flush(); return }
+
+      const each = Math.round((Number(txn.amount) / (ids.length + 1)) * 100) / 100
+      const rows = ids.map((debtor) => ({
+        id: newId(),
+        household_id: householdId,
+        transaction_id: txnId,
+        debtor,
+        amount: each,
+        settled: false,
+        settled_at: null,
+        created_at: new Date().toISOString()
+      }))
+      patchLocal('shares', (l) => [...l, ...rows])
+      for (const row of rows) enqueue({ kind: 'insert', table: 'expense_shares', row })
+      flush()
+    },
+    [state.shares, householdId, patchLocal, enqueue, flush]
+  )
+
+  /** ติ๊กว่าจ่ายคืนแล้ว / ยกเลิกติ๊ก */
+  const setShareSettled = useCallback(
+    (shareId, settled) => {
+      const patch = { settled, settled_at: settled ? new Date().toISOString() : null }
+      patchLocal('shares', (l) => l.map((s) => (s.id === shareId ? { ...s, ...patch } : s)))
+      enqueue({ kind: 'update', table: 'expense_shares', id: shareId, row: patch })
+      flush()
+    },
+    [patchLocal, enqueue, flush]
+  )
+
   const setBudget = useCallback(
     (categoryId, monthKey, amount) => {
       const month = `${monthKey}-01`
@@ -545,8 +612,30 @@ export function DataProvider({ session, children }) {
       return { ...b, net: b.income - b.expense }
     }
 
-    return { accountById, categoryById, memberById, balances, totalBalance, byMonth, monthSummary }
-  }, [state])
+    // หารเท่า: ใครติดฉัน / ฉันติดใคร และยอดที่หักลบกันแล้ว
+    const txnById = Object.fromEntries(state.transactions.map((t) => [t.id, t]))
+    const shares = state.shares.map((s) => ({ ...s, txn: txnById[s.transaction_id] ?? null }))
+    const owedToMe = shares.filter((s) => s.txn && s.txn.paid_by === userId && s.debtor !== userId)
+    const iOwe = shares.filter((s) => s.debtor === userId)
+    const sumOpen = (list) => list.filter((s) => !s.settled).reduce((n, s) => n + Number(s.amount), 0)
+    const split = {
+      all: shares,
+      owedToMe,
+      iOwe,
+      owedToMeTotal: sumOpen(owedToMe),
+      iOweTotal: sumOpen(iOwe),
+      net: sumOpen(owedToMe) - sumOpen(iOwe),
+      byTransaction: shares.reduce((acc, s) => {
+        (acc[s.transaction_id] = acc[s.transaction_id] || []).push(s)
+        return acc
+      }, {})
+    }
+
+    return {
+      accountById, categoryById, memberById, balances, totalBalance,
+      byMonth, monthSummary, split
+    }
+  }, [state, userId])
 
   const value = {
     ...state,
@@ -565,6 +654,8 @@ export function DataProvider({ session, children }) {
     saveAccount,
     saveCategory,
     setBudget,
+    saveShares,
+    setShareSettled,
     updateMyProfile,
     createInvite,
     createHousehold,

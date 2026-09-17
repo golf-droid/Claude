@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useData } from '../lib/store.jsx'
 import TransactionSheet from './TransactionSheet.jsx'
+import { CONFIG } from '../lib/config.js'
 
 const TABS = [
   { to: '/', icon: '🏠', label: 'ภาพรวม' },
   { to: '/transactions', icon: '🧾', label: 'รายการ' },
+  ...(CONFIG.split ? [{ to: '/split', icon: '🤝', label: 'หารกัน' }] : []),
   { to: '/reports', icon: '📊', label: 'รายงาน' },
   { to: '/settings', icon: '⚙️', label: 'ตั้งค่า' }
 ]
@@ -56,7 +58,7 @@ export default function Layout() {
         +
       </button>
 
-      <nav className="tabbar">
+      <nav className="tabbar" style={{ gridTemplateColumns: `repeat(${TABS.length}, 1fr)` }}>
         {TABS.map((t) => (
           <NavLink key={t.to} to={t.to} end={t.to === '/'} className="tab">
             <span className="tab-icon">{t.icon}</span>

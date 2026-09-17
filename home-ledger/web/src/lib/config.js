@@ -54,7 +54,10 @@ export const CONFIG = {
   people: parsePeople(env.VITE_PEOPLE) || DEFAULT_PEOPLE,
 
   /** แนบรูปใบเสร็จได้ไหม (ต้องสร้าง bucket 'receipts' ใน Supabase ก่อน) */
-  receipts: String(env.VITE_RECEIPTS ?? 'on').toLowerCase() !== 'off'
+  receipts: String(env.VITE_RECEIPTS ?? 'on').toLowerCase() !== 'off',
+
+  /** หารเท่าได้ไหม (ต้องรัน migrations/006_split_expenses.sql ก่อน) */
+  split: String(env.VITE_SPLIT ?? 'off').toLowerCase() === 'on'
 }
 
 /** สัญลักษณ์สกุลเงิน เช่น ฿ หรือ $ ดึงจาก Intl จะได้ตรงกับ locale เสมอ */

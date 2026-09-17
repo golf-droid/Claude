@@ -8,7 +8,9 @@ import Onboarding from './pages/Onboarding.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Transactions from './pages/Transactions.jsx'
 import Reports from './pages/Reports.jsx'
+import Split from './pages/Split.jsx'
 import Settings from './pages/Settings.jsx'
+import { CONFIG } from './lib/config.js'
 
 function NotConfigured() {
   return (
@@ -61,6 +63,7 @@ function Gate() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/reports" element={<Reports />} />
+        {CONFIG.split && <Route path="/split" element={<Split />} />}
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
